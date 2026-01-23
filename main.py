@@ -3,14 +3,15 @@ import ollama
 import chromadb
 from docx_parser import DocumentParser
 
-documents = []
-inpath = 'test_docs/'
+DB_PATH = 'db/'
+IN_PATH = 'test_docs/'
 #infile = 'test_docs/test_file.docx'
+documents = []
 
-for file in os.listdir(inpath):
+for file in os.listdir(IN_PATH):
   filename = os.fsdecode(file)
   if filename.endswith(".docx"):
-    parsed_document = DocumentParser(inpath + filename)
+    parsed_document = DocumentParser(IN_PATH + filename)
     for _type, item in parsed_document.parse():
       #print(_type, item["text"])
       print(filename, _type)
@@ -20,8 +21,8 @@ for file in os.listdir(inpath):
           documents.append(item["text"])
 
 print(documents)
-"""
-client = chromadb.Client()
+
+client = chromadb.PersistentClient(path=DB_PATH)
 collection = client.create_collection(name="data_docs")
 
 # store each document in a vector embedding database
@@ -57,4 +58,3 @@ output = ollama.generate(
 )
 
 print(output['response'])
-"""
