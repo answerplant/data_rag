@@ -2,32 +2,37 @@ import os
 import ollama
 import chromadb
 from docx_parser import DocumentParser
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 DB_PATH = 'db/'
 IN_PATH = 'test_docs/'
-#infile = 'test_docs/test_file.docx'
+EMBEDDINGS_MODEL = 'mxbai-embed-large' #'nomic-embed-text'
+CHAT_MODEL = 'llama3'
+
 documents = []
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=0)
 
 for file in os.listdir(IN_PATH):
   filename = os.fsdecode(file)
   if filename.endswith(".docx"):
     parsed_document = DocumentParser(IN_PATH + filename)
     for _type, item in parsed_document.parse():
-      #print(_type, item["text"])
-      print(filename, _type)
       if _type == "paragraph":
-        print(item)
         if item["style_id"] == 'Normal':
-          documents.append(item["text"])
+          #documents.append(text_splitter.split_text(item["text"]))
+          #print(text_splitter.split_text(item["text"]))
+          chunk_list = text_splitter.split_text(item["text"])
+          for chunk in chunk_list:
+            documents.append(chunk)
 
-print(documents)
 
-client = chromadb.PersistentClient(path=DB_PATH)
+#client = chromadb.PersistentClient(path=DB_PATH)
+client = chromadb.Client()
 collection = client.create_collection(name="data_docs")
 
 # store each document in a vector embedding database
 for i, d in enumerate(documents):
-  response = ollama.embed(model="nomic-embed-text", input=d)
+  response = ollama.embed(model=EMBEDDINGS_MODEL, input=d)
   embeddings = response["embeddings"]
   collection.add(
     ids=[str(i)],
@@ -36,12 +41,13 @@ for i, d in enumerate(documents):
   )
 
 # an example input
-print("Enter a prompt:")
-question = input().strip()
+#print("Enter a prompt:")
+#question = input().strip()
+question = "Has Answer Digital worked with NHS England Analytical teams?"
 
 # generate an embedding for the input and retrieve the most relevant doc
 response = ollama.embed(
-  model="nomic-embed-text",
+  model=EMBEDDINGS_MODEL,
   input=question
 )
 
@@ -53,7 +59,7 @@ data = results['documents'][0][0]
 
 # generate a response combining the prompt and data we retrieved in step 2
 output = ollama.generate(
-  model="llama3",
+  model=CHAT_MODEL,
   prompt=f"Using this data: {data}. Respond to this prompt: {input}"
 )
 
