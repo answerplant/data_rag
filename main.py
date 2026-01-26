@@ -8,6 +8,7 @@ DB_PATH = 'db/'
 IN_PATH = 'test_docs/'
 EMBEDDINGS_MODEL = 'mxbai-embed-large' #'nomic-embed-text'
 CHAT_MODEL = 'llama3'
+RESULTS_COUNT = 5
 
 documents = []
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=0)
@@ -52,15 +53,17 @@ response = ollama.embed(
 )
 
 results = collection.query(
-  query_embeddings=[response["embeddings"][0]], # Index relevant depending on document structure
-  n_results=1
+  query_embeddings=[response["embeddings"][0]],
+  n_results=RESULTS_COUNT
 )
 data = results['documents'][0][0]
+print("Results: " + data)
+
 
 # generate a response combining the prompt and data we retrieved in step 2
 output = ollama.generate(
   model=CHAT_MODEL,
-  prompt=f"Using this data: {data}. Respond to this prompt: {input}"
+  prompt=f"Using this data: {data}. Respond to this prompt: {input}. Return one answer only."
 )
 
 print(output['response'])
